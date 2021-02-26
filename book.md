@@ -604,3 +604,222 @@ c = sorted([
     for elem in itertools.product(a, b)
 ])
 ```
+
+## Tuples
+
+There is one more data structure that we will discuss before moving on, the tuple.
+
+The tuple in haskell is much like tuples in other languages, it has a fixed size and is instantiated with parentheses instead of brackets:
+
+```haskell
+let aTuple = (1,2,3)
+```
+
+Unlike other languages, there is no obvious way to index into tuples, so if you want a specific element from a tuple you have to recover it directly.  Say you wanted the second element in a three element tuple, then you'd need to do:
+
+```haskell
+let aTuple = (1,2,3)
+let (_,element,_) = aTuple
+element
+```
+
+The `element` variable would get assigned the value of interest.  The `_` is used as a placeholder for values we don't care about.  Notice that you need to use `()` in order to get specific elements from the tuple of interest.
+
+Although tuples don't seem all that useful as a programming construct, they are after all just very dumb lists, they are very useful from a mathematical construct point of view.
+
+We can think of a tuple as denoting a point in a coordinate system.  Then it's use becomes obvious.  Let's define a subspace of $R^{3}$:
+
+```haskell
+let r3 = [(x,y,z) | x <- [-2, -1.9 .. 2], y <- [-2, -1.9 .. 2], z <- [-2, -1.9 .. 2]]
+```
+
+This gives us a subspace of $R^{3}$ from -2 to 2 in all directions.  It's certainly not _perfect_ but it's reasonable as a subspace for any problem we might face.  From here we can map down to any specific problem.  Let's say we wanted all of the triples that solve the following equation:
+
+$$ 1 = x^{3} + y^{2} + z $$
+
+We can recover that set of tuples from the above subspace easily:
+
+```haskell
+let solutionSpace = [(x,y,z) | x <- [-2, -1.9 .. 2], y <- [-2, -1.9 .. 2], z <- [-2, -1.9 .. 2], x**3 + y**2 + z == 1]
+```
+
+## Types
+
+Up until now we've been using Haskell somewhat like Python, defining functions, variables or collections and then using them.  We didn't particularly care about what "type" of data was being instantiated or processed because we didn't really have to.  Unlike Python, Haskell has a type system.  But unlike Java, which also has a type system, Haskell can _infer_ type.  That means you can always be explicit if you really want to be, but there isn't necessarily any _reason_ to be.  At least in the examples we've worked above.  
+
+Let's create a trivial example that breaks the type system constraints Haskell imposes and in doing so, we'll reveal why having a strongly typed language _may_ be useful:
+
+```haskell
+let a = [(1,2), (1,2,3), (0,0)]
+```
+
+The above code throws the following error:
+
+```
+<interactive>:6:17: error:
+    • Couldn't match expected type ‘(t1, t)’
+                  with actual type ‘(Integer, Integer, Integer)’
+    • In the expression: (1, 2, 3)
+      In the expression: [(1, 2), (1, 2, 3), (0, 0)]
+      In an equation for ‘a’: a = [(1, 2), (1, 2, 3), (0, 0)]
+    • Relevant bindings include
+        a :: [(t1, t)] (bound at <interactive>:6:5)
+```
+
+What this error is telling us is that one of the elements in the list is not of the same type as the others.  Because of the way the way tuples are defined, a tuple of 3 elements is technically a different type than a tuple of 2 elements.  And in Haskell lists require all the elements to be of the same type.
+
+The above error may seem like an annoyance but what if you _assume_ that all the elements in your list are tuples of length two?  You'd never know that the above error occurred due to some upstream issue in the code base without something else failing, possibly in a critical way.  By knowing that your assumption has been broken, due to the type failing, you can easily identify and fix the bug!  Which is one of the super powers of having strong typing.  
+
+First let's see how to annotate variables:
+
+```haskell
+let x = 5 :: Int
+```
+
+It may be obvious because of the way we specified the above code that we are dealing with an integer.  However there are many cases, when dealing with numbers, that the type is not quiet so obvious.  For instance lets consider floating point numbers.  If we are doing numerical computation the level of precision may matter.  Again consider the following example:
+
+```haskell
+let solutionSpace = [(x,y,z) | x <- [-2, -1.9 .. 2], y <- [-2, -1.9 .. 2], z <- [-2, -1.9 .. 2], x**3 + y**2 + z == 1]
+```
+
+Haskell cannot be sure what type our range is in.  Instead of being implicit, let's be explicit and define our ranges with types:
+
+```haskell
+Prelude> let negTwo = -2 :: Float
+Prelude> let negOneNine = -1.9 :: Float
+Prelude> let two = 2 :: Float
+Prelude> let solutionSpace = [(x,y,z) | x <- [negTwo, negOneNine .. two], y <- [negTwo, negOneNine .. two], z <- [negTwo, negOneNine .. two], x**3 + y**2 + z == 1]
+Prelude> solutionSpace
+[(4.7683716e-7,-0.99999976,4.7683716e-7)]
+```
+
+Now let's consider the same problem, but we'll use doubles instead of floats.
+
+```haskell
+Prelude> let negTwo = -2 :: Double
+Prelude> let negOneNine = -1.9 :: Double
+Prelude> let two = 2 :: Double
+Prelude> let solutionSpace = [(x,y,z) | x <- [negTwo, negOneNine .. two], y <- [negTwo, negOneNine .. two], z <- [negTwo, negOneNine .. two], x**3 + y**2 + z == 1]
+Prelude> solutionSpace
+[(1.7763568394002505e-15,-0.9999999999999991,1.7763568394002505e-15)]
+```
+
+The answer is different!!!  This is because of the precision of the `Float` type versus the `Double` type.  The `Double` has twice the precision of a `Float`.  So specifying the type in Haskell could matter for _all_ sorts of things.  
+
+Next let's provide a function signature, specifying the expected types and then write out function definition
+
+```haskell
+intAdder :: Int -> Int -> Int
+intAdder x y = x + y
+```
+
+By specifying the types, we are telling haskell explicitly that this is how we define addition for integers.  We could use our adder as follows:
+
+```haskell
+intAdder 7 5
+```
+
+Why might it be nice to specify the types of our addition?  Well, let's say we wanted to define an adder for the space of complex numbers.  
+
+That would look like this:
+
+```haskell
+complexAdder :: (Float,Float) -> (Float,Float) -> (Float,Float)
+complexAdder x y = do 
+  let (x_real, x_imag) = x
+  let (y_real, y_imag) = y
+  (x_real + y_real, x_imag + y_imag)
+  
+main =
+  print (complexAdder (5.5,7.1) (1.02, 2.7))
+```
+
+There is some syntax in here we won't be ready to go over in detail for a while.  But most of this should be straight forward.  The first line is the function signature.  It says:
+
+Take in two tuples, where each tuple has two elements of type Float.  Then return a tuple with two elements of type float.
+
+The reason this is powerful, is now you can refer to the signature and know exactly what types the function expects.  You don't have to think, does this work for strings?  
+
+The next line is the function's body, it specifies what the function does.  Notice that we are seeing our first multi-line function.  For this we need the do keyword.  This allows us to execute a set of commands together, similar to imperative style programming.  It is encouraged that your functions be short, especially in haskell, so please don't write too many lines!  
+
+The final piece of new syntax is the main function.  The main function is used to tell specify the "main" scope, or the run scope of the program.  Typically all your functions and types are defined first and then the main function is specified to indicate how the program should run.
+
+### Typeclasses
+
+As we've seen from the above examples choosing our types well can be important for how our programs behave.  Now we'll introduce a topic that may be new to folks coming from languages like Python.  That of a typeclass.  If you've programmed in the past, you've already seen and interacted with types of some kind.  How a typeclass different, is it gives us a more general distinction to work with types.  
+
+In order to understand how this is useful, it might make sense to engage in a thought experiment.  Suppose you were going to build your own device for computation.  How might you want your types to behave?  If it was me, I would want three basic types:
+
+* Reals
+* Strings
+* Booleans
+
+However, for many good reasons, most programming languages define integers, floating point numbers and maybe a few other classes of numbers.  The reason for this is because of how computers work.  They are discrete computation devices.  At the lowest levels, our computational systems deal with binary.  And that choice has consequences on what we can represent and the costs associated with that representation.  We saw this cost in the example above when defining our types of numbers as either `Float` or `Double`.  However, just because we are constrained in terms of our computational limits, that doesn't mean we can't have our cake and eat it too.  That is the power of typeclasses.  For this we will consider the `Num` typeclass.  But first let's give a slightly more formal definition of a typeclass.  
+
+We can think of a typeclass is a collection of basic types.  Note, this is still not a formal definition.  
+
+Back to our `Num` typeclass.  The `Num` has types:
+
+* Int
+* Integer
+* Float
+* Double
+
+As you can see from the above example, anything that acts conceptually like our concept of a number is captured in the `Num` type.  This is what allows Haskell to be _inferential_.  Because we have agreed upon rules for how to combine things that are similar but not the same, we know what to do.  This is what allows Haskell to be strongly typed and yet the following statement will work:
+
+```haskell
+5 + 2.79182
+```
+
+The first number is clearly of type `Int`.  Whereas the second is obviously either a `Double` or a `Float`.  But because they are both of the typeclass `Num` we know what to do.  In fact, we can look at the type signature for `+` to see this explicitly:
+
+```
+Prelude> :t (+)
+(+) :: Num a => a -> a -> a
+```
+
+We use the `()` around the `+` to indicate that we want to inspect the function, instead of using addition.  The `:t` syntax allows us to inspect the type signature of a function or the type of a variable.  Notice that both of our inputs are expected to be of typeclass `Num` allowing them to be of any of the types in our typeclass.  
+
+As an aside, we haven't talked explicitly about `Integer` types before.  They are just integers with extra space.  Sort of like how `Double` is just a `Float` with more precision.  We can represent larger numbers with `Integer`.  If you have worked with Java before, this is like `BigInt`.  But I digress.
+
+In addition to the `Num` typeclass there are also two other numeric typeclasses:
+
+* Integral - made up of:
+	* Int
+	* Integer
+* Floating - made up of:
+	* Float
+	* Double
+
+Do take note that because Haskell is strongly typed, you can still run into trouble.  For instance if you do:
+
+```
+Prelude> let x = 5 :: Int
+Prelude> let y = 4.5 :: Float
+Prelude> x + y
+
+<interactive>:3:5: error:
+    • Couldn't match expected type ‘Int’ with actual type ‘Float’
+    • In the second argument of ‘(+)’, namely ‘y’
+      In the expression: x + y
+      In an equation for ‘it’: it = x + y
+```
+
+We would expect that we can add the numbers `5` and `4.5`, but we cannot.  This is because they are defined in their base types.  And there is no rule for taking a basic type like `Int` to `Float`.  We could define an explicit addition function to do this:
+
+```haskell
+addIntFloat :: Int -> Float -> Float
+addIntFloat x y = x' + y
+  where x' = fromIntegral x :: Float
+  
+main = do
+  let x = 5 :: Int
+  let y = 4.5 :: Float
+  print (addIntFloat x y)
+```
+
+The only new additional syntax here is the `where` clause which allows us to create a new variable as part of our result.  Here we use it to convert from `Int` type to `Float` type.  Notice the use of `fromIntegral` which converts things from type `Int` or `Integer`.  
+
+Over the course of this section on types we've tried to show you the power of types.  This final chain of reasoning should show you some of the inflexability of them as well.  Having to be more explicit means you actually need to worry about things that we take for granted in languages like Python, namely addition.  However, sometimes taking those things for granted can actually lead to more trouble.  It all depends.   
+
+
