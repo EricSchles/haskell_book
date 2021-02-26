@@ -822,4 +822,54 @@ The only new additional syntax here is the `where` clause which allows us to cre
 
 Over the course of this section on types we've tried to show you the power of types.  This final chain of reasoning should show you some of the inflexability of them as well.  Having to be more explicit means you actually need to worry about things that we take for granted in languages like Python, namely addition.  However, sometimes taking those things for granted can actually lead to more trouble.  It all depends.   
 
+## Intermediate Functions
+
+In addition to all we've seen that you can do with functions, we also have another piece of syntactic sugar, namely pattern matching.  In general pattern matching allows for a bunch of cases to be specified, as well as what happens in each case.  So it takes something like this:
+
+```haskell
+func x = if x == 7 then "x is seven" else "x is not seven"
+```
+
+And turns it into this:
+
+```haskell
+func :: (Integral a) => a -> String
+func 7 = "x is seven"
+func x = "x is not seven"
+  
+main = do
+  print (func 7)
+  print (func 12)
+```
+
+It's important to note, if you define a function like this in ghci (the haskell REPL) the pattern matching won't work. 
+
+In the above pattern matching version of the function we get much cleaner code and we can save on a bunch of complicated logic with if/then/else statements.  This becomes especially apparent when we move to several cases like the following example:
+
+```haskell
+toWord :: String -> String
+toWord "1" = "one"
+toWord "2" = "two"
+toWord "3" = "three"
+toWord "4" = "four"
+toWord "5" = "five"
+toWord "6" = "six"
+toWord "7" = "seven"
+toWord "8" = "eight"
+toWord "9" = "nine"
+toWord "0" = "zero"
+
+writeOut :: Integer -> String
+writeOut integer = do
+  let stringRepresentation = (show integer)
+  let arrayRepresentation = map (:[]) stringRepresentation
+  let wordArrayRepresentation = map toWord arrayRepresentation
+  concat wordArrayRepresentation
+
+main = do
+  let longInteger = 123512398172948691872312387
+  print (writeOut longInteger)
+```
+
+This piece of code translates an integer to the written out version of the integer.  As you can see, we have to specify 10 separate cases.  Writing this out as if/then/else statements would be extremely messy.  
 
